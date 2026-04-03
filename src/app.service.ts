@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { AuthDto } from 'dto/auth.dto';
 import { Users } from 'entities/users.entity';
 import { DataSource } from 'typeorm';
@@ -6,9 +6,18 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { Files } from 'entities/files.entity';
 import { FilesAccess } from 'entities/filesaccess.entity';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import * as cacheManager_1 from 'cache-manager';
 
 @Injectable()
 export class AppService {
+  
+  constructor(
+    @Inject(CACHE_MANAGER) private readonly cacheManager: cacheManager_1.Cache,
+    private readonly db: DataSource,
+    private readonly jwtService: JwtService,
+  ){}
+  
   userHasAccessToFile(sub: number, fileId: number) {
     return this.db.manager.findOne(FilesAccess, {
       where: {
@@ -26,10 +35,6 @@ export class AppService {
     });
   }
   
-  constructor(
-    private readonly db: DataSource,
-    private readonly jwtService: JwtService,
-  ){}
 
   async auth(body: AuthDto) {
     const { username, password } = body;
@@ -86,7 +91,7 @@ export class AppService {
       throw new UnauthorizedException('Invalid username or password');
     }
 
-    // Генерация JWT
+    // JWT Generatsiyasi
     const payload = {
       sub: user.id,
       username: user.username,
@@ -154,10 +159,17 @@ export class AppService {
 
 
 async getUserFilesByUserId(id: any) {
+  const cacheKey = `user:${id}`;
+  const cachedUser = await this.cacheManager.get(cacheKey);
+  if (cachedUser) {
+    return cachedUser;
+  }
+
   const access = await this.db.manager.find(FilesAccess, {
     where: { user:  { id } },
     relations: ['file'],
   });
+  await this.cacheManager.set(cacheKey, access, 5 * 60 * 1000); 
   return access.map(a => a.file);
 }
 
