@@ -11,6 +11,7 @@ Real-time collaborative document system (Google Docs-like) built with WebSocket.
 - 👥 Real-time collaboration via WebSocket
 - 🏠 Rooms (per file)
 - 🔒 Access control (owner / shared users)
+- 💾 Redis caching
 
 ---
 
@@ -20,6 +21,7 @@ Real-time collaborative document system (Google Docs-like) built with WebSocket.
 - Database: PostgreSQL
 - ORM: TypeORM
 - Realtime: Socket.IO
+- Redis
 
 ---
 
